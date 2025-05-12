@@ -1,0 +1,15 @@
+numpy
+pandas
+FLAML
+openml
+matplotlib
+seq2pat
+mlxtend
+imbalanced-learn
+xgboost
+lightgbm
+catboost
+aif360[LFR]
+fairlearn
+smac
+shutup
