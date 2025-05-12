@@ -79,11 +79,24 @@ At this point, the next iteration can be performed.
 
 ## LogicalKB syntax
 
-We committed in developing a logical language as intuitive as possible:
-- ```step(S).``` specifies a step ```S``` of the pipeline, with ```S``` in [```discretization```, ```normalization```, ```rebalancing```, ```imputation```, ```features```, ```classification```]
-- ```operator(S, O).``` specifies an operator ```O``` for the step ```S```, with ```O``` in [```kbins```, ```binarizer```, ```power_transformer```, ```robust_scaler```, ```standard```,  ```minmax```, ```select_k_best```, ```pca```, ```simple_imputer```, ```iterative_imputer```, ```near_miss```, ```smote```]
+We committed in developing a logical language as intuitive as possible.
+
+Context:
+- ```dataset(D).``` specifies the dataset ```D``` to train the AI pipelines
+- ```metric(perf_metric).``` specifies the metric ```perf_metric``` to consider as the performance objective
+- ```fairness_metric(fair_metric).``` specifies the metric ```fair_metric``` to consider as a fairness objective
+- ```performance_threshold(min, max).``` specifies the thresholds to consider for mining discouraging (```perf_metric < min```) and promising (```perf_metric > max```) constraints
+- ```fairness_threshold(min, max).``` specifies the thresholds to consider for mining unfair (```fair_metric < min```) and fair (```fair_metric > max```) constraints
+- ```mining_support(supp).``` specifies the support ```supp``` to accept a mined constraint (min percentage of pipelines following the rule)
+
+Search Space definition:
+- ```step(S).``` specifies a step ```S``` of the pipeline, with ```S``` in [```discretization```, ```normalization```, ```rebalancing```, ```imputation```, ```features```, ```mitigation```, ```classification```]
+- ```operator(S, O).``` specifies an operator ```O``` for the step ```S```, with ```O``` in [```kbins```, ```binarizer```, ```power_transformer```, ```robust_scaler```, ```standard```,  ```minmax```, ```select_k_best```, ```pca```, ```simple_imputer```, ```iterative_imputer```, ```near_miss```, ```smote```, , ```corr_remover```, ```lfr```, ```mlp```, ```rf```, ```knn```]
 - ```hyperparameter(O, H, T).``` specifies an hyper-parameter ```H``` for the operator ```O``` with type ```T```, ```H``` can be every hyper-parameter name of the chosen Scikit-learn operator ```O```, ```T``` is chosen accordingly and has to be in [```randint```, ```choice```, ```uniform```]
 - ```domain(O, H, D).``` specifies the domain ```D``` of the hyper-parameter ```H``` of the operatore ```O```, ```D``` is an array in ```[ ... ]``` brackets containing the values that the hyper-parameter ```H``` can assume (in case of ```randint``` and ```uniform```, the array has to contain just two elements: the boundary of the range)
+
+Constraints:
 - ```id :=> mandatory_order([S1, S2], O1).``` specifies a ```mandatory_order``` constraint: the step ```S1``` has to appear before the step ```S2``` when occurring the operator ```O1``` of the task step (in this implementation we support only ```classification``` task); it is possible to put ```classification``` instead of ```O1```, this will apply the constraint for each ```classification``` operators
 - ```id :=> mandatory([S1, S2, ...], O1).``` specifies a ```mandatory``` constraint: the steps ```[S1, S2, ...]``` are mandatory when occurring the operator ```O1``` of the task step (in this implementation we support only ```classification``` task); if the array of the steps is empty, the constraint specifies only that O1 is mandatory (with or withour Data Pre-processing steps)
 - ```id :=> forbidden([S1, S2, ...], O1).``` specifies a ```forbidden``` constraint: the steps ```[S1, S2, ...]``` are forbidden when occurring the operator ```O1``` of the task step (in this implementation we support only ```classification``` task); if the array of the steps is empty, the constraint specifies only that O1 is forbidden (with or withour Data Pre-processing steps)
+- ```discriminate([S1, S2, ...], O1).``` specifies a ```forbidden_order``` constraint: the steps ```[S1, S2, ...]``` are forbidden when occurring the operator ```O1``` of the task step (in this implementation we support only ```classification``` task); if the array of the steps is empty, the constraint specifies only that O1 is forbidden (with or withour Data Pre-processing steps)
