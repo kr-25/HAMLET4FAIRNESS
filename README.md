@@ -49,46 +49,83 @@ HAMLET allows to encode both the AutoML search space and the user-defined constr
 - ```sensitive_feature(F, [V1, ..., VN]).``` marks the feature `F` in the selected dataset as **sensitive**. It will be used to guide the optimization of the fairness score during pipeline evaluation or selection. The values `[V1, ..., VN]` specify the possible values of `F` to be considered. When multiple `sensitive_feature` predicates are defined (i.e., for different features), the system will construct **sensitive groups** by computing **all combinations** of the specified values across those features. These groupings serve as the basis for measuring and optimizing fairness.
 - ```discriminate(pipeline([S1, S2, ...], C), O1).``` indicates that the pipeline composed of the ordered steps `[S1, S2, ...]` followed by classifier `C` results in unfair treatment of sensitive group `O1`. While the predicate does not explicitly define a `forbidden_order` constraint, it acts as one: it marks pipelines with the specified sequence as yielding low fairness metric values with respect to group `O1`. As a result, it creates a conflict with any pipeline containing the same sequence, effectively functioning like a `forbidden_order` constraint.
 
-The two ready-to-use LogicalKB that have been used for the paper's experiments can be found in the [resources folder](https://github.com/kr-25/HAMLET4FAIRNESS/tree/db6ad0d705845bd50d18e548bf0bd81cd64dfd26/automl/resources) of this repository:
-- [kb.txt](https://github.com/kr-25/HAMLET4FAIRNESS/blob/1d3e81a8216ded56d45016c4e9df2845e724569b/automl/resources/kb.txt) is a knowledge base containing the search space leveraged in our experiments;
-- [pkb.txt](https://github.com/kr-25/HAMLET4FAIRNESS/blob/1d3e81a8216ded56d45016c4e9df2845e724569b/automl/resources/pkb.txt) (PreliminaryKB) is a knowledge base containing the search space along with some suggested constraints (discovered in the paper [Data pre-processing pipeline generation for AutoETL](https://www.sciencedirect.com/science/article/abs/pii/S0306437921001514)).
-
 ## Usage
 
-<img width="960" alt="hamlet_gui" src="https://user-images.githubusercontent.com/41596745/209572069-4e63d9b5-a88d-405b-bf01-cc1a02cd1812.png">
+We specify the scheme of the ML pipeline that we want to build, step by step:
 
-We specify the scheme of the ML pipeline that we want to build, step by step.
+```
+dataset('credit-g').
+metric(balanced_accuracy).
+fairness_metric(demographic_parity_ratio).
+performance_threshold(0.4, 0.6).
+fairness_threshold(0.4, 0.6).
+mining_support(0.1).
+
+sensitive_feature(sex, [male, female]).
+sensitive_feature(personal_status, ["single", "div/dep/mar", "mar/wid"]).
+
+step(features).
+step(mitigation).
+step(classification).
+
+operator(features, select_k_best).
+operator(mitigation, corr_remover).
+operator(classification, knn).
+
+hyperparameter(select_k_best, k, randint).
+hyperparameter(corr_remover, alpha, choice).
+hyperparameter(knn, n_neighbors, randint).
+hyperparameter(knn, weights, choice).
+hyperparameter(knn, metric, choice).
+
+domain(select_k_best, k, [1, 10]).
+domain(corr_remover, alpha, [0.25, 0.5, 0.75, 1.0]).
+domain(knn, n_neighbors, [3, 20]).
+```
+
 In the example we have:
-- a Data Pre-processing step for Discretization;
-- a Data Pre-processing step for Normalization;
+- a Data Pre-processing step for Features Engineering;
+- a Data Pre-processing step for Mitigation;
 - a Modeling step for Classification (the task we want to address).
 
 Then, we have the implementations and the hyper-parameter domains of each step:
-- KBins for Discretization, with a integer parameter k_bins that ranges from 3 to 8;
-- StandardScaler for Normalization, with no parameter;
-- Decision Tree and K-Nearest Neighbors for Classification, with -- respectively -- an integer parameter max_depth that ranges from 1 to 5 and an integer parameter n_neighbors that ranges from 3 to 20.
-
-Finally, we have a user-defined constraints (```c1```): forbid Normalization for Decision Tree.
+- SelectKBest for Features Engineering, with a integer parameter k_bins that ranges from 1 to 10;
+- CorrelationRemover for Mitigation, with a parameter alpha with a value in [0.25, 0.5, 0.75, 1.0];
+- K-Nearest Neighbors for Classification, with an integer parameter n_neighbors that ranges from 3 to 20.
 
 By hitting the ```Compute Graph``` button, the LogicalKB is processed to build the Problem Graph, visualized at the bottom-right corner of the GUI.
-Each node of the graph (arguments) represents a specific portion of search sub-space, the legend is visualized at the bottom-left corner.
-For instance:
-- A1, A3, A5, A7, and A9 represent all the possible pipelines for the Decision Tree algorithm;
-- A2, A4, A6, A8, and A10 represent all the possible pipelines for the K-Nearest Neighbor algorithm.
 
-Each constraint is represented as an argument as well: A0 represents the user-defined constraint ```c1```.
+![Screenshot 2025-05-13 123222](https://github.com/user-attachments/assets/d71e22ec-9bef-4b4e-bac8-5a00c131c9f0)
 
-Edges are attacks from an argument to another (```c1``` attacks exactly the pipelines in which we have Normalization along with the Decision Tree).
+When you click the **`Compute Graph`** button, HAMLET processes the **LogicalKB** and builds the **Problem Graph**, which shows up in the bottom-right corner of the interface.
 
-By hitting the ```Run AutoML``` button, HAMLET triggers the exploration of the encoded search space, taking also in consideration the specified constraints (discouraging the exploration in those particular sub-spaces).
+Some of the nodes in the graph (arguments) represent specific parts of the search space that could be explored.
 
-At the end of the optimization, the user can switch to the ```Data``` tab to go through all the explored configurations:
+To keep things clear, the graph only shows parts of the space that are **under doubt**, meaning they're affected by some constraint.  
+In the example below, you don't see any arguments for pipelines because no constraints were added to the knowledge base. Only arguments related to **sensitive groups** are shown.
 
-<img width="956" alt="hamlet-gui-data2" src="https://user-images.githubusercontent.com/41596745/209576316-92bb528a-b180-4b61-83fd-621a3f8e3589.png">
+Clicking the **`Run AutoML`** button starts the actual search. HAMLET explores the search space, avoiding portions that are discouraged by the current rules.
 
-As to the last tab ```AutoML arguments```, we can see reccomendations of constraints, mined from the AutoML output:
+Once it's done, you can head over to the **`Data`** tab to check out all the configurations that were explored:
 
-<img width="959" alt="hamlet-gui-rules2" src="https://user-images.githubusercontent.com/41596745/210392351-13491f27-e07f-4e3e-a012-4f2e3692bc52.png">
+![Screenshot 2025-05-13 123237](https://github.com/user-attachments/assets/7dba5cfa-4e35-482d-abaf-49222a6eaee1)
 
-The data scientist can consider the iclusion of the proposed arguments in the LogicalKB.
-At this point, a new optimization can be performed.
+The last tab, **`AutoML arguments`**, shows **recommended constraints** that HAMLET has mined from the AutoML output:
+
+![Screenshot 2025-05-13 123300](https://github.com/user-attachments/assets/849be3aa-d731-4d36-90fe-e83f725ad834)
+
+These suggestions can help you update the **LogicalKB**. Just review them and decide which ones you want to include.
+Let’s say we decide to include the suggested constraint that requires using both **Mitigation** and **Feature Engineering** steps when applying **Knn**:
+
+```
+c1 : [] => mandatory([features, mitigation], knn).
+```
+
+After adding this constraint and clicking **`Compute Graph`** again, we get the updated graph:
+
+![Screenshot 2025-05-13 123623](https://github.com/user-attachments/assets/8b66ee60-841f-4ed7-a25a-8e1e98fdaed2)
+
+In this graph, edges represent attacks between arguments.
+In our case argument **A0**, representing our new constraint `c1`, attacks arguments **A1**, **A2**, and **A3**, which correspond to pipeline configurations that do not satisfy the constraint (i.e., they use KNN without both Mitigation and Feature Engineering).
+
+We can now run a new AutoML optimization, which will **exclude** these parts of the search space, focusing only on the configurations that meet the new requirement.
