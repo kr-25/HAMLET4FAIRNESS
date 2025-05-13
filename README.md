@@ -28,7 +28,7 @@ This is the implementation of the off-the-shelf framework **HAMLET4Fairness**, p
 
 Once you run HAMLET with a specific dataset and a specific metric to optimize, at the top of the window, HAMLET allows to encode both the AutoML search space and the user-defined constraints into the LogicalKB (see the next section for the accepted syntax).
 
-The two ready-to-use LogicalKB that have been used for the paper's experiments can be found in the resources folder (```automl/res/``) of this repository:
+The two ready-to-use LogicalKB that have been used for the paper's experiments can be found in the [resources folder](https://github.com/kr-25/HAMLET4FAIRNESS/tree/db6ad0d705845bd50d18e548bf0bd81cd64dfd26/automl/resources) of this repository:
 - ```kb.txt``` is a knowledge base containing the search space leveraged in our experiments;
 - ```pkb.txt``` (PreliminaryKB) is a knowledge base containing the search space along with some suggested constraints (discovered in the paper [Data pre-processing pipeline generation for AutoETL](https://www.sciencedirect.com/science/article/abs/pii/S0306437921001514)).
 
@@ -61,7 +61,7 @@ Indeed, the node (argument) A0 represent the user-defined constraint ```c1```.
 
 Edges are attacks from an argument to another (```c1``` attacks exactly the pipelines in which we have Normalization along with the Decision Tree).
 
-By hitting the ```Run AutoML``` button, HAMLET triggers FLAML to explore the encoded search space, taking also in consideration the specified constraints (discouraging the exploration in those particular sub-spaces).
+By hitting the ```Run AutoML``` button, HAMLET triggers the exploration of the encoded search space, taking also in consideration the specified constraints (discouraging the exploration in those particular sub-spaces).
 
 At the end of the optimization, the user can switch to the ```Data``` tab to go through all the explored configurations:
 
@@ -71,10 +71,7 @@ As to the last tab ```AutoML arguments```, we can see reccomendations of constra
 
 <img width="959" alt="hamlet-gui-rules2" src="https://user-images.githubusercontent.com/41596745/210392351-13491f27-e07f-4e3e-a012-4f2e3692bc52.png">
 
-We think at this process as an *argument* between the data scientist and the AutoML tool.
-The data scientist can consider the arguments at hand, and encode them into the LogicalKB.
-
-
+The data scientist can consider the iclusion of the proposed arguments in the LogicalKB.
 At this point, the next iteration can be performed.
 
 ## LogicalKB syntax
@@ -96,7 +93,10 @@ Search Space definition:
 - ```domain(O, H, D).``` specifies the domain ```D``` of the hyper-parameter ```H``` of the operatore ```O```, ```D``` is an array in ```[ ... ]``` brackets containing the values that the hyper-parameter ```H``` can assume (in case of ```randint``` and ```uniform```, the array has to contain just two elements: the boundary of the range)
 
 Constraints:
-- ```id :=> mandatory_order([S1, S2], O1).``` specifies a ```mandatory_order``` constraint: the step ```S1``` has to appear before the step ```S2``` when occurring the operator ```O1``` of the task step (in this implementation we support only ```classification``` task); it is possible to put ```classification``` instead of ```O1```, this will apply the constraint for each ```classification``` operators
-- ```id :=> mandatory([S1, S2, ...], O1).``` specifies a ```mandatory``` constraint: the steps ```[S1, S2, ...]``` are mandatory when occurring the operator ```O1``` of the task step (in this implementation we support only ```classification``` task); if the array of the steps is empty, the constraint specifies only that O1 is mandatory (with or withour Data Pre-processing steps)
-- ```id :=> forbidden([S1, S2, ...], O1).``` specifies a ```forbidden``` constraint: the steps ```[S1, S2, ...]``` are forbidden when occurring the operator ```O1``` of the task step (in this implementation we support only ```classification``` task); if the array of the steps is empty, the constraint specifies only that O1 is forbidden (with or withour Data Pre-processing steps)
-- ```discriminate([S1, S2, ...], O1).``` specifies a ```forbidden_order``` constraint: the steps ```[S1, S2, ...]``` are forbidden when occurring the operator ```O1``` of the task step (in this implementation we support only ```classification``` task); if the array of the steps is empty, the constraint specifies only that O1 is forbidden (with or withour Data Pre-processing steps)
+- ```id : [] => mandatory_order([S1, S2], O1).``` specifies a ```mandatory_order``` constraint: the step ```S1``` has to appear before the step ```S2``` when occurring the operator ```O1``` of the task step (in this implementation we support only ```classification``` task); it is possible to put ```classification``` instead of ```O1```, this will apply the constraint for each ```classification``` operators
+- ```id : [] => mandatory([S1, S2, ...], O1).``` specifies a ```mandatory``` constraint: the steps ```[S1, S2, ...]``` are mandatory when occurring the operator ```O1``` of the task step (in this implementation we support only ```classification``` task); if the array of the steps is empty, the constraint specifies only that O1 is mandatory (with or withour Data Pre-processing steps)
+- ```id : [] => forbidden([S1, S2, ...], O1).``` specifies a ```forbidden``` constraint: the steps ```[S1, S2, ...]``` are forbidden when occurring the operator ```O1``` of the task step (in this implementation we support only ```classification``` task); if the array of the steps is empty, the constraint specifies only that O1 is forbidden (with or withour Data Pre-processing steps)
+
+Fairness Predicates:
+- ```sensitive_feature(F, [V1, ..., VN]).``` marks the feature `F` in the selected dataset as **sensitive**. It will be used to guide the optimization of the fairness score during pipeline evaluation or selection. The values `[V1, ..., VN]` specify the possible values of `F` to be considered. When multiple `sensitive_feature` predicates are defined (i.e., for different features), the system will construct **sensitive groups** by computing **all combinations** of the specified values across those features. These groupings serve as the basis for measuring and optimizing fairness.
+- ```discriminate(pipeline([S1, S2, ...], C), O1).``` indicates that the pipeline composed of the ordered steps `[S1, S2, ...]` followed by classifier `C` results in unfair treatment of sensitive group `O1`. While the predicate does not explicitly define a `forbidden_order` constraint, it acts as one: it marks pipelines with the specified sequence as yielding low fairness metric values with respect to group `O1`. As a result, it creates a conflict with any pipeline containing the same sequence, effectively functioning like a `forbidden_order` constraint.
