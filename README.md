@@ -93,11 +93,9 @@ Then, we have the implementations and the hyper-parameter domains of each step:
 - CorrelationRemover for Mitigation, with a parameter alpha with a value in [0.25, 0.5, 0.75, 1.0];
 - K-Nearest Neighbors for Classification, with an integer parameter n_neighbors that ranges from 3 to 20.
 
-By hitting the ```Compute Graph``` button, the LogicalKB is processed to build the Problem Graph, visualized at the bottom-right corner of the GUI.
+When you click the **`Compute Graph`** button, HAMLET processes the **LogicalKB** and builds the **Problem Graph**, which shows up in the bottom-right corner of the interface.
 
 ![Screenshot 2025-05-13 123222](https://github.com/user-attachments/assets/d71e22ec-9bef-4b4e-bac8-5a00c131c9f0)
-
-When you click the **`Compute Graph`** button, HAMLET processes the **LogicalKB** and builds the **Problem Graph**, which shows up in the bottom-right corner of the interface.
 
 Some of the nodes in the graph (arguments) represent specific parts of the search space that could be explored.
 
